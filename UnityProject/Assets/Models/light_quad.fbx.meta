@@ -1,0 +1,134 @@
+fileFormatVersion: 2
+guid: ac700ecd5a720da42bff11d07c6816b3
+timeCreated: 1444761811
+licenseType: Free
+ModelImporter:
+  serializedVersion: 18
+  fileIDToRecycleName:
+    100000: Armature
+    100002: Barrel1-Muzzle
+    100004: Barrel1-Recoil
+    100006: Barrel2-Recoil
+    100008: Barrel3-Muzzle
+    100010: Barrel3-Recoil
+    100012: Barrel4-Muzzle
+    100014: Barrel4-Muzzle.001
+    100016: Barrel4-Recoil
+    100018: Cube
+    100020: Cube.003
+    100022: Cylinder
+    100024: Cylinder.001
+    100026: Cylinder.002
+    100028: Cylinder.003
+    100030: Cylinder.004
+    100032: Cylinder.005
+    100034: //RootNode
+    100036: Plane
+    100038: Turret-Base
+    100040: Turret-Elevate
+    100042: Turret-Traverse
+    400000: Armature
+    400002: Barrel1-Muzzle
+    400004: Barrel1-Recoil
+    400006: Barrel2-Recoil
+    400008: Barrel3-Muzzle
+    400010: Barrel3-Recoil
+    400012: Barrel4-Muzzle
+    400014: Barrel4-Muzzle.001
+    400016: Barrel4-Recoil
+    400018: Cube
+    400020: Cube.003
+    400022: Cylinder
+    400024: Cylinder.001
+    400026: Cylinder.002
+    400028: Cylinder.003
+    400030: Cylinder.004
+    400032: Cylinder.005
+    400034: //RootNode
+    400036: Plane
+    400038: Turret-Base
+    400040: Turret-Elevate
+    400042: Turret-Traverse
+    4300000: Cylinder.005
+    4300002: Cylinder.004
+    4300004: Cube.003
+    4300006: Cylinder.003
+    4300008: Cylinder
+    4300010: Cylinder.001
+    4300012: Plane
+    4300014: Cube
+    4300016: Cylinder.002
+    9500000: //RootNode
+    13700000: Cube
+    13700002: Cube.003
+    13700004: Cylinder
+    13700006: Cylinder.001
+    13700008: Cylinder.002
+    13700010: Cylinder.003
+    13700012: Cylinder.004
+    13700014: Cylinder.005
+    13700016: Plane
+  materials:
+    importMaterials: 1
+    materialName: 0
+    materialSearch: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    optimizeGameObjects: 0
+    motionNodeName: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    animationCompression: 1
+    animationRotationError: .5
+    animationPositionError: .5
+    animationScaleError: .5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    clipAnimations: []
+    isReadable: 1
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 1
+    meshCompression: 0
+    addColliders: 0
+    importBlendShapes: 1
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    optimizeMeshForGPU: 1
+    keepQuads: 0
+    weldVertices: 1
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+  tangentSpace:
+    normalSmoothAngle: 60
+    splitTangentsAcrossUV: 1
+    normalImportMode: 0
+    tangentImportMode: 1
+  importAnimation: 1
+  copyAvatar: 0
+  humanDescription:
+    human: []
+    skeleton: []
+    armTwist: .5
+    foreArmTwist: .5
+    upperLegTwist: .5
+    legTwist: .5
+    armStretch: .0500000007
+    legStretch: .0500000007
+    feetSpacing: 0
+    rootMotionBoneName: 
+    hasTranslationDoF: 0
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  animationType: 2
+  humanoidOversampling: 1
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
