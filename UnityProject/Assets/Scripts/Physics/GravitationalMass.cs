@@ -11,7 +11,7 @@ public class GravitationalMass : MonoBehaviour {
         get { return masses; }
     }
 
-    public const float G = 1f;
+    public const float G = 500f;
 
     public float Mass;
 

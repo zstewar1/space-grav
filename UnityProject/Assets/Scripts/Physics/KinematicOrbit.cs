@@ -25,8 +25,8 @@ public class KinematicOrbit : GravitationalMass {
         UpdateEllipseToOrbit();
     }
 
-    void Update () {
-        MeanAnomaly += angularVelocity * Time.deltaTime;
+    void FixedUpdate () {
+        MeanAnomaly += angularVelocity * Time.fixedDeltaTime;
 
         if (MeanAnomaly > 360) MeanAnomaly -= 360;
 
@@ -35,35 +35,37 @@ public class KinematicOrbit : GravitationalMass {
 
 #if UNITY_EDITOR
     void OnDrawGizmos () {
-        UpdateAngularVelocity();
-        UpdateEllipseToOrbit();
+        if (Parent) {
+            UpdateAngularVelocity();
+            UpdateEllipseToOrbit();
 
-        const float inc = Mathf.PI / 180f;
+            const float inc = Mathf.PI / 180f;
 
-        var pos = Parent.transform.position;
+            var pos = Parent.transform.position;
 
-        for(float theta = 0.0f; theta < 2f * Mathf.PI; theta += inc) {
-            float old = theta - inc;
-            Gizmos.DrawLine(
-                GetRelativePosition(EccentricToTrueAnomaly(theta)) + pos,
-                GetRelativePosition(EccentricToTrueAnomaly(old)) + pos);
+            for (float theta = 0.0f; theta < 2f * Mathf.PI; theta += inc) {
+                float old = theta - inc;
+                Gizmos.DrawLine(
+                    GetRelativePosition(EccentricToTrueAnomaly(theta)) + pos,
+                    GetRelativePosition(EccentricToTrueAnomaly(old)) + pos);
+            }
+
+            var curr = GetPosition();
+            transform.position = curr;
+            Gizmos.DrawLine(Parent.transform.position, curr);
+
+            var ascNode = GetRelativePosition(-ArgumentOfPeriapsis * Mathf.Deg2Rad) + pos;
+            var descNode = GetRelativePosition(Mathf.PI - ArgumentOfPeriapsis * Mathf.Deg2Rad) + pos;
+
+            Gizmos.color = Color.red;
+            Gizmos.DrawLine(ascNode, descNode);
+
+            var apoapsis = GetRelativePosition(Mathf.PI) + pos;
+            var periapsis = GetRelativePosition(0) + pos;
+
+            Gizmos.color = Color.green;
+            Gizmos.DrawLine(apoapsis, periapsis);
         }
-
-        var curr = GetPosition();
-        transform.position = curr;
-        Gizmos.DrawLine(Parent.transform.position, curr);
-
-        var ascNode = GetRelativePosition(-ArgumentOfPeriapsis * Mathf.Deg2Rad) + pos;
-        var descNode = GetRelativePosition(Mathf.PI - ArgumentOfPeriapsis * Mathf.Deg2Rad) + pos;
-
-        Gizmos.color = Color.red;
-        Gizmos.DrawLine(ascNode, descNode);
-
-        var apoapsis = GetRelativePosition(Mathf.PI) + pos;
-        var periapsis = GetRelativePosition(0) + pos;
-
-        Gizmos.color = Color.green;
-        Gizmos.DrawLine(apoapsis, periapsis);
     }
 #endif
 
