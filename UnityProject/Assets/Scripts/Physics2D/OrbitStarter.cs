@@ -75,7 +75,7 @@ public class OrbitStarter : MonoBehaviour {
         return Vector2.zero;
     }
 
-    public void OnDrawGizmos () {
+    public void OnDrawGizmosSelected () {
         Gizmos.color = Color.white;
 
         var pos = CalculatePosition();

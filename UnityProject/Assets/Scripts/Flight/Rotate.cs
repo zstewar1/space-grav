@@ -7,9 +7,12 @@ public class Rotate : MonoBehaviour {
     public float RotateTorque;
 
     public PID Stabilizer;
+    public bool AutoStabilize;
 
     public bool LockAngle;
     public AnglePID AngleLocker;
+
+    public float ForwardAngle;
 
     Rigidbody2D rb;
 
@@ -22,16 +25,29 @@ public class Rotate : MonoBehaviour {
 	void Update () {
         if (LockAngle) {
             rb.AddTorque(Mathf.Clamp(AngleLocker.Step(rb.rotation), -RotateTorque, RotateTorque));
-        } else { 
+
+            if (!Mathf.Approximately(0, Input.GetAxis("Horizontal")) || Input.GetButton("Stabilize")) {
+                LockAngle = false;
+            }
+        }
+
+        if(Input.GetButtonDown("Fire1")) {
+            var clicked = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            var diff = (Vector2)clicked - rb.position;
+
+            Debug.DrawLine(clicked, rb.position);
+
+            var angle = Mathf.Atan2(diff.y, diff.x) * Mathf.Rad2Deg - ForwardAngle;
+
+            LockAngle = true;
+            AngleLocker.SetPoint = angle;
+        }
+
+        if (!Mathf.Approximately(0, Input.GetAxis("Horizontal"))) {
             var torque = -Input.GetAxis("Horizontal") * RotateTorque;
             rb.AddTorque(torque);
-
-            if (Input.GetButtonDown("Stabilize")) {
-                Stabilizer.Reset();
-            }
-            if (Input.GetButton("Stabilize")) {
-                rb.AddTorque(Mathf.Clamp(Stabilizer.Step(rb.angularVelocity), -RotateTorque, RotateTorque));
-            }
+        } else if (Input.GetButton("Stabilize") || (AutoStabilize && !LockAngle)) {
+            rb.AddTorque(Mathf.Clamp(Stabilizer.Step(rb.angularVelocity), -RotateTorque, RotateTorque));
         }
 	}
 }
