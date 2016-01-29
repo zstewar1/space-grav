@@ -3,7 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 
 [AddComponentMenu("Physics 2D/Gravitational Mass")]
-public class GravitationalMass : MonoBehaviour {
+[RequireComponent(typeof(Rigidbody2D))]
+public class GravitationalMass : MonoBehaviour, QuadtreePoint {
 
     static List<GravitationalMass> masses = new List<GravitationalMass>();
 
@@ -13,7 +14,21 @@ public class GravitationalMass : MonoBehaviour {
 
     public const float G = 1000f;
 
-    public float Mass;
+    public float Mass { get {
+            return rb.mass;
+        }
+    }
+    public Vector2 Position { get { return rb.worldCenterOfMass; } }
+
+    public void AddForce(Vector2 force) {
+        rb.AddForce(force);
+    }
+
+    Rigidbody2D rb;
+
+    void Awake() {
+        rb = GetComponent<Rigidbody2D>();
+    }
 
 	// Use this for initialization
 	void OnEnable () {
