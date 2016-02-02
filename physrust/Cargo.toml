@@ -1,0 +1,13 @@
+[package]
+name = "physrust"
+version = "0.1.0"
+authors = ["Zachary Stewart <zachary@zstewart.com>"]
+
+[lib]
+name = "physrust"
+
+crate-type = ["dylib"]
+
+[dependencies]
+nalgebra = "*"
+num = "*"
