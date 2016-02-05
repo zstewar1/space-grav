@@ -1,5 +1,3 @@
-
-
 use nalgebra::{Vec2, Norm};
 use num::{Zero};
 use std::cmp::PartialEq;

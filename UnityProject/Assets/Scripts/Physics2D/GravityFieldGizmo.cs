@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections;
 
 [AddComponentMenu("Physics 2D/Gravity Field Gizmo")]
