@@ -3,6 +3,7 @@ use nalgebra::{Vec2, Norm};
 use num::{Zero};
 use std::cmp::PartialEq;
 
+#[allow(non_camel_case_types)]
 pub type v2 = Vec2<f32>;
 
 /// Theta is the distance/side ratio where quadtree calculations are allowed to stop.
@@ -215,5 +216,23 @@ impl<'a, T: 'a + QuadtreePoint> Quadtree<'a, T> {
                 None => Zero::zero(),
             }
         }
+    }
+}
+
+// ************************************************
+// ************************************************
+// *****          EXTERNAL INTERFACE          *****
+// ************************************************
+// ************************************************
+
+#[no_mangle]
+pub extern fn new_barnes_hut(center: v2, size: f32) -> *mut BarnesHut {
+    Box::into_raw(Box::new(BarnesHut::new(center, size)))
+}
+
+#[no_mangle]
+pub extern fn free_barnes_hut(bh: *mut BarnesHut) {
+    if !bh.is_null() {
+        unsafe { Box::from_raw(bh) };
     }
 }
