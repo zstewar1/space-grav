@@ -1,3 +1,4 @@
+extern crate crossbeam;
 extern crate nalgebra;
 extern crate num;
 

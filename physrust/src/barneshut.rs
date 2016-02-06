@@ -1,8 +1,9 @@
+use crossbeam;
 use nalgebra::{Vec2, Norm};
 use num::{Zero};
 use std::cmp::PartialEq;
 
-type v2 = Vec2<f32>;
+pub type v2 = Vec2<f32>;
 
 /// Theta is the distance/side ratio where quadtree calculations are allowed to stop.
 pub static THETA: f32 = 1.0;
@@ -10,17 +11,67 @@ pub static THETA: f32 = 1.0;
 /// G is the constant of gravity.
 pub static G: f32 = 1.0;
 
+pub static NUM_THREADS: usize = 8;
+
 /// BarnesHut encapsulates the calculations needed to run a step of the simulation.
 pub struct BarnesHut {
 
     /// The center of the simulation.
-    sim_center: v2,
+    center: v2,
     /// The total width/height of the simulation.
-    sim_size: f32,
+    size: f32,
+}
+
+impl BarnesHut {
+
+    /// Create a new Barnes-Hut base thingy.
+    pub fn new(center: v2, size: f32) -> BarnesHut {
+        BarnesHut {
+            center: center,
+            size: size,
+        }
+    }
+
+    /// Calculate the forces acting between all of the given points.
+    ///
+    /// Returns an iterator with elements in the same order as the input iterator which is
+    /// a vector of the forces experienced by each of the point masses.
+    pub fn calculate_forces<'a, T: 'a + QuadtreePoint + Sync>(&self, points: &[T], result: &mut [v2]) -> Result<(), &'static str> {
+
+        if points.len() != result.len() {
+            return Err("Points and Result must be the same size.");
+        }
+
+        let mut root = Quadtree::new(self.center, self.size);
+
+        for point in points.iter() {
+            root.insert(point);
+        }
+
+        root.calculate_mass_distribution();
+
+        // (x+y-1)/y is integer division with round-up
+        crossbeam::scope(|scope| {
+            // Immutably borrow root for the threads. The immutable reference is thread safe.
+            let root = &root;
+
+            let task_size = (points.len() + NUM_THREADS - 1) / NUM_THREADS;
+
+            for (src, dst) in points.chunks(task_size).zip(result.chunks_mut(task_size)) {
+                scope.spawn(move || {
+                    for (inp, outp) in src.iter().zip(dst.iter_mut()) {
+                        *outp = root.calculate_force(inp);
+                    }
+                });
+            }
+        });
+
+        Ok(())
+    }
 }
 
 /// Generic representation of a point in a quadtree.
-trait QuadtreePoint : PartialEq {
+pub trait QuadtreePoint : PartialEq {
     /// Where this point is.
     fn position(&self) -> v2;
     /// How much mass this point has.

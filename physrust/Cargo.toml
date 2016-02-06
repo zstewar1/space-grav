@@ -9,5 +9,6 @@ name = "physrust"
 crate-type = ["dylib"]
 
 [dependencies]
+crossbeam = "*"
 nalgebra = "*"
 num = "*"
