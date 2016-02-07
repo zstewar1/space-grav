@@ -9,7 +9,7 @@ public class BarnesHut : MonoBehaviour {
 
     [DllImport("physrust")]
     public static unsafe extern Int32 barnes_hut_calculate_forces (BarnesHutC* bh, QuadtreePointImpl* points, Vector2* outp, UIntPtr npoints);
-
+    
     /// <summary>
     /// Representation of the rust BarnesHut struct
     /// </summary>
@@ -19,6 +19,7 @@ public class BarnesHut : MonoBehaviour {
         public float size;
         public float theta;
         public float g;
+        public UIntPtr nthreads;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -31,15 +32,18 @@ public class BarnesHut : MonoBehaviour {
 
     public float Theta = 1.0f;
     public float G = 1.0f;
-
+    
     public Vector2 Center = Vector2.zero;
     public float Size = 10f;
-    
+
+    public int NThreads = 1;
+
     void Start () {
         underlying.center = Center;
         underlying.size = Size;
         underlying.theta = Theta;
         underlying.g = G;
+        underlying.nthreads = (UIntPtr)NThreads;
     }
 
 #if UNITY_EDITOR
@@ -49,6 +53,7 @@ public class BarnesHut : MonoBehaviour {
             underlying.size = Size;
             underlying.theta = Theta;
             underlying.g = G;
+            underlying.nthreads = (UIntPtr)NThreads;
         }
     }
 #endif

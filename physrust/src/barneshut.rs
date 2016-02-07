@@ -7,8 +7,6 @@ use std::slice;
 #[allow(non_camel_case_types)]
 pub type v2 = Vec2<f32>;
 
-pub static NUM_THREADS: usize = 8;
-
 /// BarnesHut encapsulates the calculations needed to run a step of the simulation.
 #[repr(C)]
 pub struct BarnesHut {
@@ -23,17 +21,21 @@ pub struct BarnesHut {
 
     /// The gravitational constant.
     g: f32,
+
+    /// Number of threads to attempt to use.
+    nthreads: usize,
 }
 
 impl BarnesHut {
 
     /// Create a new Barnes-Hut base thingy.
-    pub fn new(center: v2, size: f32, theta: f32, g: f32) -> BarnesHut {
+    pub fn new(center: v2, size: f32, theta: f32, g: f32, nthreads: usize) -> BarnesHut {
         BarnesHut {
             center: center,
             size: size,
             theta: theta,
             g: g,
+            nthreads: nthreads,
         }
     }
 
@@ -60,7 +62,7 @@ impl BarnesHut {
             // Immutably borrow root for the threads. The immutable reference is thread safe.
             let root = &root;
 
-            let task_size = (points.len() + NUM_THREADS - 1) / NUM_THREADS;
+            let task_size = (points.len() + self.nthreads - 1) / self.nthreads;
 
             for (src, dst) in points.chunks(task_size).zip(result.chunks_mut(task_size)) {
                 scope.spawn(move || {
@@ -211,13 +213,13 @@ impl<'a, T: 'a + QuadtreePoint> Quadtree<'a, T> {
         } else {
             match self.data {
                 // If there is data, calculate the force between the two masses.
-                Some(elem) => {
+                Some(elem) if elem != targ => {
                     let dir = elem.position() - targ.position();
                     let dist = dir.norm();
                     dir * bh.g * elem.mass() * targ.mass() / (dist * dist * dist)
                 },
                 // Otherwise the force is just zero.
-                None => Zero::zero(),
+                _ => Zero::zero(),
             }
         }
     }
@@ -247,8 +249,8 @@ impl QuadtreePoint for QuadtreePointImpl {
 }
 
 #[no_mangle]
-pub extern fn barnes_hut_new(center: v2, size: f32, theta: f32, g: f32) -> *mut BarnesHut {
-    Box::into_raw(Box::new(BarnesHut::new(center, size, theta, g)))
+pub extern fn barnes_hut_new(center: v2, size: f32, theta: f32, g: f32, nthreads: usize) -> *mut BarnesHut {
+    Box::into_raw(Box::new(BarnesHut::new(center, size, theta, g, nthreads)))
 }
 
 #[no_mangle]
