@@ -29,11 +29,11 @@ public class GravityFieldGizmo : MonoBehaviour {
                     Vector2 fieldVector = (Vector2)gm.transform.position - pos;
                     var d = fieldVector.magnitude;
 
-                    fieldVector *= gm.Mass / (d*d*d);
+                    fieldVector *= gm.GetComponent<Rigidbody2D>().mass / (d*d*d);
                     fieldLine += fieldVector;
                 }
 
-                fieldLine *= GravitationalMass.G * FieldScale;
+                fieldLine *= FieldScale;
 
                 if (LimitLength > 0) {
                     fieldLine = Vector2.ClampMagnitude(fieldLine, LimitLength);

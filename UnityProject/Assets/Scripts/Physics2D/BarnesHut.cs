@@ -1,162 +1,94 @@
 using UnityEngine;
+using System;
 using System.Collections;
+using System.Runtime.InteropServices;
 
 [AddComponentMenu("Physics 2D/Barnes-Hut Gravity Simulation")]
 [ExecuteInEditMode]
 public class BarnesHut : MonoBehaviour {
 
-    public const float Theta = 1f;
+    [DllImport("physrust")]
+    public static unsafe extern Int32 barnes_hut_calculate_forces (BarnesHutC* bh, QuadtreePointImpl* points, Vector2* outp, UIntPtr npoints);
 
-    public Quadtree<GravitationalMass> Quadtree = new Quadtree<GravitationalMass>();
+    /// <summary>
+    /// Representation of the rust BarnesHut struct
+    /// </summary>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct BarnesHutC {
+        public Vector2 center;
+        public float size;
+        public float theta;
+        public float g;
+    }
 
-    public Vector2 SimulationCenter = Vector2.zero;
-    public float SimulationSize = 10f;
+    [StructLayout(LayoutKind.Sequential)]
+    public struct QuadtreePointImpl {
+        public Vector2 position;
+        public float mass;
+    }
 
-    public bool allQuadrants = false;
+    BarnesHutC underlying;
 
-    void OnEnable () {
-        Quadtree.Reset();
-        Quadtree.Origin = (Vector2)transform.position + SimulationCenter;
-        Quadtree.HalfDimension = SimulationSize * 0.5f;
+    public float Theta = 1.0f;
+    public float G = 1.0f;
+
+    public Vector2 Center = Vector2.zero;
+    public float Size = 10f;
+    
+    void Start () {
+        underlying.center = Center;
+        underlying.size = Size;
+        underlying.theta = Theta;
+        underlying.g = G;
     }
 
 #if UNITY_EDITOR
-    void Update() {
-        if(!Application.isPlaying) {
-            OnEnable();
+    void Update () {
+        if (!Application.isPlaying) {
+            underlying.center = Center;
+            underlying.size = Size;
+            underlying.theta = Theta;
+            underlying.g = G;
         }
     }
 #endif
 
     void FixedUpdate () {
-        Quadtree.Reset();
-        foreach(var mass in GravitationalMass.Masses) {
-            Quadtree.Insert(mass);
+
+        QuadtreePointImpl[] points = new QuadtreePointImpl[GravitationalMass.Masses.Count];
+        Vector2[] outputs = new Vector2[GravitationalMass.Masses.Count];
+
+        for(int i = 0; i < GravitationalMass.Masses.Count; i++) {
+            var m = GravitationalMass.Masses[i];
+            points[i].position = m.Position;
+            points[i].mass = m.Mass;
         }
-        Quadtree.CalculateMassDistribution();
-        foreach (var mass in GravitationalMass.Masses) {
-            mass.AddForce(Quadtree.CalculateForce(mass));
+
+        //for (int i = 0; i < points.Length; i++) {
+        //    Debug.LogFormat("p{3}x: {0}, p{3}y: {1}, p{3}m: {2}", points[i].position.x, points[i].position.y, points[i].mass, i);
+        //}
+        
+        for(int i = 0; i < outputs.Length; i++) {
+            outputs[i] = Vector2.zero;
         }
-    }
 
-    void OnDrawGizmos() {
-        Quadtree.DrawGizmos(allQuadrants ? int.MaxValue : 1);
-    }
-}
+        unsafe
+        {
+            fixed (QuadtreePointImpl* pts = points)
+            {
+                fixed(Vector2* outs = outputs)
+                {
+                    fixed(BarnesHutC* bh = &underlying)
+                    {
+                        barnes_hut_calculate_forces(bh, pts, outs, (UIntPtr)GravitationalMass.Masses.Count);
 
-public interface QuadtreePoint {
-    Vector2 Position { get; }
-    float Mass { get; }
-}
-
-public class Quadtree<T> where T : class, QuadtreePoint {
-
-    public Vector2 Origin { get; set; }
-    public float HalfDimension { get; set; }
-
-    Vector2 centerOfMass;
-    float mass;
-
-    Quadtree<T>[] children;
-
-    T data;
-
-    public Quadtree (Vector2 origin, float halfDimension) {
-        Origin = origin;
-        HalfDimension = halfDimension;
-    }
-
-    public Quadtree () : this(Vector2.zero, 0f) { }
-
-    public void Reset () {
-        children = null;
-        data = null;
-        centerOfMass = Vector2.zero;
-        mass = 0f;
-    }
-
-    int getPointQuadrant (Vector2 point) {
-        int quad = 0;
-        if (point.x >= Origin.x) quad |= 2;
-        if (point.y >= Origin.y) quad |= 1;
-        return quad;
-    }
-
-    public void Insert (T element) {
-        if(children == null) {
-            if(data == null) {
-                data = element;
-            } else {
-                children = new Quadtree<T>[4];
-                for(int i = 0; i < children.Length; i++) {
-                    var childOrigin = Origin;
-                    childOrigin.x += HalfDimension * ((i & 2) != 0 ? 0.5f : -0.5f);
-                    childOrigin.y += HalfDimension * ((i & 1) != 0 ? 0.5f : -0.5f);
-                    children[i] = new Quadtree<T>(childOrigin, HalfDimension * 0.5f);
-                }
-
-                children[getPointQuadrant(data.Position)].Insert(data);
-                data = null;
-                children[getPointQuadrant(element.Position)].Insert(element);
-            }
-        } else {
-            children[getPointQuadrant(element.Position)].Insert(element);
-        }
-    }
-
-    public void CalculateMassDistribution () {
-        if (children == null) {
-            if (data != null) {
-                mass = data.Mass;
-                centerOfMass = data.Position;
-            } // Else empty, so ignore.
-        } else {
-            mass = 0;
-            centerOfMass = Vector2.zero;
-            foreach (var child in children) {
-                child.CalculateMassDistribution();
-                mass += child.mass;
-                centerOfMass += child.centerOfMass * child.mass;
-            }
-            centerOfMass /= mass;
-        }
-    }
-
-    public Vector2 CalculateForce (T targ) {
-        var force = Vector2.zero;
-
-        if(children == null) {
-            if (data != null & data != targ) {
-                force = data.Position - targ.Position;
-                var dist = force.magnitude;
-                dist *= dist * dist;
-                force = force * GravitationalMass.G * data.Mass * targ.Mass / dist;
-            } // else force stays zero
-        } else {
-            var dir = centerOfMass - targ.Position;
-            var dist = dir.magnitude;
-            var height = HalfDimension * 2;
-            if (height / dist < BarnesHut.Theta) {
-                force = dir * GravitationalMass.G * mass * targ.Mass / (dist * dist * dist);
-            } else {
-                foreach(var child in children) {
-                    force += child.CalculateForce(targ);
+                    }
                 }
             }
         }
 
-        return force;
-    }
-
-    public void DrawGizmos (int forceDrawDepth = 1) {
-        if(data != null || forceDrawDepth > 0) {
-            var size = HalfDimension * 2;
-            Gizmos.DrawWireCube(Origin, new Vector3(size, size, size));
-        }
-        if (children != null) {
-            foreach(var child in children) {
-                child.DrawGizmos(forceDrawDepth - 1);
-            }
+        for(int i = 0; i < GravitationalMass.Masses.Count; i++) {
+            GravitationalMass.Masses[i].AddForce(outputs[i]);
         }
     }
 }

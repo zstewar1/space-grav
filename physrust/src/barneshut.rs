@@ -2,34 +2,38 @@ use crossbeam;
 use nalgebra::{Vec2, Norm};
 use num::{Zero};
 use std::cmp::PartialEq;
+use std::slice;
 
 #[allow(non_camel_case_types)]
 pub type v2 = Vec2<f32>;
 
-/// Theta is the distance/side ratio where quadtree calculations are allowed to stop.
-pub static THETA: f32 = 1.0;
-
-/// G is the constant of gravity.
-pub static G: f32 = 1.0;
-
 pub static NUM_THREADS: usize = 8;
 
 /// BarnesHut encapsulates the calculations needed to run a step of the simulation.
+#[repr(C)]
 pub struct BarnesHut {
 
     /// The center of the simulation.
     center: v2,
     /// The total width/height of the simulation.
     size: f32,
+
+    /// The constant ratio for when to recurse more in the quadtree.
+    theta: f32,
+
+    /// The gravitational constant.
+    g: f32,
 }
 
 impl BarnesHut {
 
     /// Create a new Barnes-Hut base thingy.
-    pub fn new(center: v2, size: f32) -> BarnesHut {
+    pub fn new(center: v2, size: f32, theta: f32, g: f32) -> BarnesHut {
         BarnesHut {
             center: center,
             size: size,
+            theta: theta,
+            g: g,
         }
     }
 
@@ -61,7 +65,7 @@ impl BarnesHut {
             for (src, dst) in points.chunks(task_size).zip(result.chunks_mut(task_size)) {
                 scope.spawn(move || {
                     for (inp, outp) in src.iter().zip(dst.iter_mut()) {
-                        *outp = root.calculate_force(inp);
+                        *outp = root.calculate_force(inp, self);
                     }
                 });
             }
@@ -189,19 +193,19 @@ impl<'a, T: 'a + QuadtreePoint> Quadtree<'a, T> {
     }
 
     /// Calcualte the force vector that targ would experience given the masses in this quadtree.
-    fn calculate_force(&self, targ: &T) -> v2 {
+    fn calculate_force(&self, targ: &T, bh: &BarnesHut) -> v2 {
         if self.children.len() > 0 {
             // If there are children, we see if we can use this subtree as a point mass or if we
             // have to recurse more.
             let dir = self.center_of_mass - targ.position();
             let dist = dir.norm();
-            if self.width / dist < THETA {
+            if self.width / dist < bh.theta {
                 // if the ratio is small enough, just treat this tree as a point mass.
-                dir * G * self.mass * targ.mass() / (dist * dist * dist)
+                dir * bh.g * self.mass * targ.mass() / (dist * dist * dist)
             } else {
                 // Otherwise, sum the forces from all children.
                 self.children.iter()
-                .map(|child| child.calculate_force(targ))
+                .map(|child| child.calculate_force(targ, bh))
                 .fold(Zero::zero(), |acc, elem| acc + elem)
             }
         } else {
@@ -210,7 +214,7 @@ impl<'a, T: 'a + QuadtreePoint> Quadtree<'a, T> {
                 Some(elem) => {
                     let dir = elem.position() - targ.position();
                     let dist = dir.norm();
-                    dir * G * elem.mass() * targ.mass() / (dist * dist * dist)
+                    dir * bh.g * elem.mass() * targ.mass() / (dist * dist * dist)
                 },
                 // Otherwise the force is just zero.
                 None => Zero::zero(),
@@ -225,14 +229,55 @@ impl<'a, T: 'a + QuadtreePoint> Quadtree<'a, T> {
 // ************************************************
 // ************************************************
 
-#[no_mangle]
-pub extern fn new_barnes_hut(center: v2, size: f32) -> *mut BarnesHut {
-    Box::into_raw(Box::new(BarnesHut::new(center, size)))
+#[repr(C)]
+#[derive(PartialEq)]
+pub struct QuadtreePointImpl {
+    position: v2,
+    mass: f32,
+}
+
+impl QuadtreePoint for QuadtreePointImpl {
+    fn position(&self) -> v2 {
+        self.position
+    }
+
+    fn mass(&self) -> f32 {
+        self.mass
+    }
 }
 
 #[no_mangle]
-pub extern fn free_barnes_hut(bh: *mut BarnesHut) {
+pub extern fn barnes_hut_new(center: v2, size: f32, theta: f32, g: f32) -> *mut BarnesHut {
+    Box::into_raw(Box::new(BarnesHut::new(center, size, theta, g)))
+}
+
+#[no_mangle]
+pub extern fn barnes_hut_free(bh: *mut BarnesHut) {
     if !bh.is_null() {
         unsafe { Box::from_raw(bh) };
     }
+}
+
+/// Calculate the forces acting between the given set of points.
+///
+/// points and out must both be the same size and their size must be `npoints`
+#[no_mangle]
+pub extern fn barnes_hut_calculate_forces(bh: *mut BarnesHut, points: *mut QuadtreePointImpl, out: *mut v2, npoints: usize) -> i32 {
+    if bh.is_null() || points.is_null() || out.is_null() {
+        return -1
+    }
+
+    let bh = unsafe { &*bh };
+    let points = unsafe { slice::from_raw_parts(points, npoints) };
+    let out = unsafe { slice::from_raw_parts_mut(out, npoints) };
+
+    // for (i, point) in points.iter().enumerate() {
+    //     desktop!("p{i}x: {}, p{i}y: {}, p{i}m: {}", point.position.x, point.position.y, point.mass, i=i);
+    // }
+
+    match bh.calculate_forces(points, out) {
+        Ok(()) => 0,
+        Err(_) => 1,
+    }
+    // 0
 }
